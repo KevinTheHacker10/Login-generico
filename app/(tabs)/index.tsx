@@ -22,7 +22,7 @@ export default function LoginScreen() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       Alert.alert("Bienvenido", `Hola ${userCredential.user.displayName || "usuario"}`);
-      router.push('./home'); // Redirige después del login
+      router.push('./Products'); // Redirige después del login
     } catch (error: any) {
       console.error(error);
       Alert.alert("Error", "Correo o contraseña incorrectos");
@@ -67,7 +67,7 @@ export default function LoginScreen() {
               <Text style={styles.buttonText}>Ingresar</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => router.push('./registro')}>
+            <TouchableOpacity onPress={() => router.push('./register')}>
               <View style={styles.linkContainer}>
                 <Text style={styles.linkText}>Crear cuenta nueva </Text>
                 <Text style={[styles.linkText, styles.boldText]}>Regístrate</Text>
