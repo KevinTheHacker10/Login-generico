@@ -1,5 +1,8 @@
-import React from 'react';
+import { router } from 'expo-router';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import React, { useState } from 'react';
 import {
+  Alert,
   Image,
   ImageBackground,
   SafeAreaView,
@@ -9,8 +12,23 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { auth } from '../../firebaseConfig';
 
 export default function LoginScreen() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleLogin = async () => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      Alert.alert("Bienvenido", `Hola ${userCredential.user.displayName || "usuario"}`);
+      router.push('./home'); // Redirige después del login
+    } catch (error: any) {
+      console.error(error);
+      Alert.alert("Error", "Correo o contraseña incorrectos");
+    }
+  };
+
   return (
     <ImageBackground
       source={require('../../assets/wallpaper.jpg')}
@@ -31,22 +49,30 @@ export default function LoginScreen() {
               style={styles.input}
               placeholder="correo electrónico"
               placeholderTextColor="#999"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
             />
             <TextInput
               style={styles.input}
               placeholder="contraseña"
               placeholderTextColor="#999"
               secureTextEntry
+              value={password}
+              onChangeText={setPassword}
             />
 
-            <TouchableOpacity style={styles.button}>
+            <TouchableOpacity style={styles.button} onPress={handleLogin}>
               <Text style={styles.buttonText}>Ingresar</Text>
             </TouchableOpacity>
 
-            <View style={styles.linkContainer}>
-              <Text style={styles.linkText}>Crear cuenta nueva </Text>
-              <Text style={[styles.linkText, styles.boldText]}>Regístrate</Text>
-            </View>
+            <TouchableOpacity onPress={() => router.push('./registro')}>
+              <View style={styles.linkContainer}>
+                <Text style={styles.linkText}>Crear cuenta nueva </Text>
+                <Text style={[styles.linkText, styles.boldText]}>Regístrate</Text>
+              </View>
+            </TouchableOpacity>
 
             <TouchableOpacity>
               <Text style={[styles.linkText, styles.underlineText]}>

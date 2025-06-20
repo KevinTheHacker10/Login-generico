@@ -1,15 +1,18 @@
 import { Link, router } from 'expo-router';
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import React, { useState } from 'react';
 import {
-    Alert,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
+import { auth } from "../../firebaseConfig"; // ruta donde creaste la config
+
 
 export default function RegisterScreen() {
   const [nombre, setNombre] = useState('');
@@ -17,15 +20,26 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  const handleRegister = () => {
-    if (password !== confirmPassword) {
-      Alert.alert("Error", "Las contraseñas no coinciden");
-      return;
-    }
-    // Lógica de registro (ej: Firebase, API)
-    console.log("Usuario registrado:", { nombre, email });
-    router.push('./index.tsx'); // Redirige a login después del registro
-  };
+  
+const handleRegister = async () => {
+  if (password !== confirmPassword) {
+    Alert.alert("Error", "Las contraseñas no coinciden");
+    return;
+  }
+
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(userCredential.user, {
+      displayName: nombre,
+    });
+
+    Alert.alert("Éxito", "Usuario registrado correctamente");
+    router.push('./index.tsx'); // Volver al login
+  } catch (error: any) {
+    console.error(error);
+    Alert.alert("Error al registrar", error.message);
+  }
+};
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
