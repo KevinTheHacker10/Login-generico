@@ -1,7 +1,7 @@
 // firebaseConfig.ts
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 const firebaseConfig = {
   apiKey: "AIzaSyBF5J6dC8Cgo9YyFanlSKgcIFEnvBes4cY",
   authDomain: "login1-f1143.firebaseapp.com",
@@ -12,8 +12,7 @@ const firebaseConfig = {
   measurementId: "G-WM2LL540HV"
 };
 
-// Inicializa Firebase
 const app = initializeApp(firebaseConfig);
-
-// Exporta auth para usar en login/registro
 export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();
+export const db = getFirestore(app);

@@ -1,4 +1,5 @@
 import { Link, router } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import React, { useState } from 'react';
 import {
@@ -11,7 +12,8 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { auth } from "../../firebaseConfig"; // ruta donde creaste la config
+import { auth } from "../../firebaseConfig";
+WebBrowser.maybeCompleteAuthSession();
 
 
 export default function RegisterScreen() {
@@ -19,7 +21,6 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
   
 const handleRegister = async () => {
   if (password !== confirmPassword) {
