@@ -35,7 +35,7 @@ const handleRegister = async () => {
     });
 
     Alert.alert("Éxito", "Usuario registrado correctamente");
-    router.push('./index.tsx'); // Volver al login
+    router.push('/'); // Volver al login
   } catch (error: any) {
     console.error(error);
     Alert.alert("Error al registrar", error.message);
@@ -88,7 +88,7 @@ const handleRegister = async () => {
         </TouchableOpacity>
 
         {/* Enlace para volver a login */}
-        <Link href="./index.tsx" asChild>
+        <Link href="/" asChild>
           <TouchableOpacity style={styles.link}>
             <Text style={styles.linkText}>¿Ya tienes cuenta? Inicia sesión</Text>
           </TouchableOpacity>
