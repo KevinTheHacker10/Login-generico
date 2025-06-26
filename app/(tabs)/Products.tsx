@@ -1,17 +1,15 @@
-// products.tsx
-import { addDoc, collection, getDocs } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDocs, updateDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    FlatList,
-    Image,
-    ImageBackground,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Image,
+  ImageBackground,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { db } from '../../firebaseConfig';
 
@@ -26,22 +24,10 @@ type ProductData = {
   fechaRegistro: string;
 };
 
-// Función para guardar producto directamente
-const addProduct = async (productData: ProductData): Promise<string> => {
-  try {
-    const productosRef = collection(db, 'Productos');
-    const docRef = await addDoc(productosRef, productData);
-    console.log('Documento guardado con ID:', docRef.id);
-    return docRef.id;
-  } catch (error) {
-    console.error('Error al guardar producto:', error);
-    throw new Error('No se pudo guardar el producto');
-  }
-};
-
 const ProductsScreen = () => {
   const [productos, setProductos] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [idEnEdicion, setIdEnEdicion] = useState<string | null>(null);
   const [nuevoProducto, setNuevoProducto] = useState<ProductData>({
     nombre: '',
     codigo: '',
@@ -54,12 +40,12 @@ const ProductsScreen = () => {
 
   const cargarProductos = async () => {
     try {
-      const productosSnapshot = await getDocs(collection(db, 'Productos'));
-      const productosList = productosSnapshot.docs.map((doc) => ({
+      const snapshot = await getDocs(collection(db, 'Productos'));
+      const list = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
-      setProductos(productosList);
+      setProductos(list);
     } catch (error) {
       console.error('Error al cargar productos:', error);
       Alert.alert('Error', 'No se pudieron cargar los productos');
@@ -74,8 +60,16 @@ const ProductsScreen = () => {
 
   const handleGuardarProducto = async () => {
     try {
-      const id = await addProduct(nuevoProducto);
-      Alert.alert('Éxito', `Producto guardado con ID: ${id}`);
+      if (idEnEdicion) {
+        const docRef = doc(db, 'Productos', idEnEdicion);
+        await updateDoc(docRef, nuevoProducto);
+        Alert.alert('Actualizado', 'Producto actualizado correctamente');
+      } else {
+        const productosRef = collection(db, 'Productos');
+        await addDoc(productosRef, nuevoProducto);
+        Alert.alert('Éxito', 'Producto guardado correctamente');
+      }
+
       setNuevoProducto({
         nombre: '',
         codigo: '',
@@ -85,11 +79,39 @@ const ProductsScreen = () => {
         estado: 'activo',
         fechaRegistro: new Date().toISOString().split('T')[0],
       });
+      setIdEnEdicion(null);
       cargarProductos();
     } catch (error) {
-      Alert.alert('Error', 'No se pudo guardar el producto');
+      console.error(error);
+      Alert.alert('Error', 'No se pudo guardar o actualizar el producto');
     }
   };
+
+  const handleEliminar = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'Productos', id));
+      Alert.alert('Eliminado', 'Producto eliminado correctamente');
+      cargarProductos();
+    } catch (error) {
+      console.error('Error al eliminar:', error);
+      Alert.alert('Error', 'No se pudo eliminar el producto');
+    }
+  };
+
+  const handleEditar = (item: any) => {
+    setNuevoProducto({
+      nombre: item.nombre || '',
+      codigo: item.codigo || '',
+      fechaCaducidad: item.fechaCaducidad || '',
+      categoria: item.categoria || '',
+      cantidad: typeof item.cantidad === 'number' ? item.cantidad : parseInt(item.cantidad) || 0,
+      estado: item.estado || 'activo',
+      fechaRegistro: item.fechaRegistro || new Date().toISOString().split('T')[0],
+    });
+    setIdEnEdicion(item.id);
+    Alert.alert('Editando', 'Modificá los campos y presioná "Actualizar Producto"');
+  };
+
 
   const renderItem = ({ item }: { item: any }) => (
     <View style={styles.card}>
@@ -100,83 +122,111 @@ const ProductsScreen = () => {
       <Text>Cantidad: {item.cantidad}</Text>
       <Text>Estado: {item.estado}</Text>
       <Text>Fecha Registro: {item.fechaRegistro}</Text>
+
+      <View style={styles.cardButtons}>
+        <TouchableOpacity
+          style={[styles.smallButton, { backgroundColor: '#FF5252' }]}
+          onPress={() => handleEliminar(item.id)}
+        >
+          <Text style={styles.smallButtonText}>🗑️ Eliminar</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.smallButton, { backgroundColor: '#FFA000' }]}
+          onPress={() => handleEditar(item)}
+        >
+          <Text style={styles.smallButtonText}>✏️ Editar</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
   return (
-    <ImageBackground
-      source={require('../../assets/wallpaper.jpg')}
-      style={styles.background}
-      blurRadius={4}
-    >
-      <ScrollView contentContainerStyle={styles.container}>
-        <Image
-          source={require('../../assets/logo.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+    <ImageBackground style={{ flex: 1 }}>
+  <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.bannerImage}>
+      <Image
+        source={require('../../assets/wallpaper.jpg')}
+        style={{ width: '100%', height: '100%' }}
+        resizeMode="cover"
+      />
+    </View>
 
-        <Text style={styles.title}>Registrar Nuevo Producto</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Nombre"
-          value={nuevoProducto.nombre}
-          onChangeText={(text) =>
-            setNuevoProducto({ ...nuevoProducto, nombre: text })
-          }
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Código"
-          value={nuevoProducto.codigo}
-          onChangeText={(text) =>
-            setNuevoProducto({ ...nuevoProducto, codigo: text })
-          }
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Fecha Caducidad (DD/MM/YYYY)"
-          value={nuevoProducto.fechaCaducidad}
-          onChangeText={(text) =>
-            setNuevoProducto({ ...nuevoProducto, fechaCaducidad: text })
-          }
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Categoría"
-          value={nuevoProducto.categoria}
-          onChangeText={(text) =>
-            setNuevoProducto({ ...nuevoProducto, categoria: text })
-          }
-        />
-        <Text style={styles.nombre}>Cantidad</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Cantidad"
-          value={nuevoProducto.cantidad.toString()}
-          onChangeText={(text) =>
-            setNuevoProducto({ ...nuevoProducto, cantidad: parseInt(text) })
-          }
-        />
+    <View style={styles.formCard}>
+      <Text style={styles.title}>Productos</Text>
 
-        <TouchableOpacity style={styles.button} onPress={handleGuardarProducto}>
-          <Text style={styles.buttonText}>Guardar Producto</Text>
-        </TouchableOpacity>
+      <TextInput
+        style={styles.input}
+        placeholder="Nombre producto"
+        value={nuevoProducto.nombre}
+        onChangeText={(text) => setNuevoProducto({ ...nuevoProducto, nombre: text })}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Código producto"
+        value={nuevoProducto.codigo}
+        onChangeText={(text) => setNuevoProducto({ ...nuevoProducto, codigo: text })}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Cantidad"
+        keyboardType="numeric"
+        value={(nuevoProducto.cantidad ?? '').toString()}
+        onChangeText={(text) =>
+          setNuevoProducto({ ...nuevoProducto, cantidad: parseInt(text) || 0 })
+        }
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Fecha caducidad"
+        value={nuevoProducto.fechaCaducidad}
+        onChangeText={(text) =>
+          setNuevoProducto({ ...nuevoProducto, fechaCaducidad: text })
+        }
+      />
 
-        <Text style={styles.title}>Productos Registrados</Text>
+      <TouchableOpacity
+        style={[styles.button, { backgroundColor: '#871f1f' }]}
+        onPress={handleGuardarProducto}
+      >
+        <Text style={styles.buttonText}>
+          {idEnEdicion ? 'Actualizar' : 'Guardar'}
+        </Text>
+      </TouchableOpacity>
+    </View>
 
-        {isLoading ? (
-          <Text style={styles.loading}>Cargando...</Text>
-        ) : (
-          <FlatList
-            data={productos}
-            renderItem={renderItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.list}
-          />
-        )}
-      </ScrollView>
-    </ImageBackground>
+    <Text style={styles.title}>Productos Registrados</Text>
+    {isLoading && <Text style={styles.loading}>Cargando...</Text>}
+
+    {productos.map((item) => (
+      <View key={item.id} style={styles.card}>
+        <Text style={styles.nombre}>Nombre: {item.nombre}</Text>
+        <Text>Código: {item.codigo}</Text>
+        <Text>Caduca: {item.fechaCaducidad}</Text>
+        <Text>Categoría: {item.categoria}</Text>
+        <Text>Cantidad: {item.cantidad}</Text>
+        <Text>Estado: {item.estado}</Text>
+        <Text>Fecha Registro: {item.fechaRegistro}</Text>
+
+        <View style={styles.cardButtons}>
+          <TouchableOpacity
+            style={[styles.smallButton, { backgroundColor: '#FF5252' }]}
+            onPress={() => handleEliminar(item.id)}
+          >
+            <Text style={styles.smallButtonText}>🗑️ Eliminar</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.smallButton, { backgroundColor: '#FFA000' }]}
+            onPress={() => handleEditar(item)}
+          >
+            <Text style={styles.smallButtonText}>✏️ Editar</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    ))}
+  </ScrollView>
+</ImageBackground>
   );
 };
 
@@ -187,10 +237,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   container: {
-    flex: 1,
+    flexGrow: 1,
     padding: 20,
+    paddingTop: 0,
     backgroundColor: 'rgba(255, 255, 255, 0.85)',
   },
+
   logo: {
     width: 120,
     height: 120,
@@ -245,6 +297,41 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 5,
+  },
+  cardButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  smallButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  smallButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  formCard: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 20,
+    padding: 20,
+    marginVertical: 0,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  bannerImage: {
+    width: '100%',
+    height: 200,
+    borderBottomLeftRadius: 100,
+    borderBottomRightRadius: 100,
+    overflow: 'hidden',
+    marginTop: 0, 
+    paddingTop: 0,
   },
 });
 
